@@ -12,6 +12,7 @@ concurrency:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 10   # الوقت الأقصى للجوب كاملاً
 
     steps:
       - name: Checkout code
@@ -22,22 +23,21 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Download previous artifacts
+      - name: Download previous artifacts (if any)
         uses: actions/download-artifact@v4
         with:
           name: bot-data
-          path: .  # النقطة تعني المجلد الحالي (نفس مكان main.py)
-          merge-multiple: true  # دمج múltiples artifacts إذا وجدت
-          overwrite: true  # الكتابة على الملفات الموجودة
-        continue-on-error: true  # لا توقف العملية إذا لم تجد artifacts
+          path: .
+          overwrite: true
+        continue-on-error: true
 
-      - name: Verify artifact files
+      - name: Verify artifact download
         run: |
-          echo "الملفات الموجودة بعد التنزيل:"
+          echo "الملفات بعد التحميل:"
           ls -la
           echo "---"
-          echo "التحقق من وجود ملفات الجلسة:"
-          ls -la *.session 2>/dev/null || echo "لا توجد ملفات جلسة حالية"
+          echo "التحقق من ملفات الجلسة:"
+          ls -la *.session 2>/dev/null || echo "لا توجد ملفات جلسة من تشغيل سابق"
 
       - name: Install dependencies
         run: |
@@ -48,7 +48,6 @@ jobs:
 
       - name: Run bot
         run: python main.py
-        timeout-minutes: 10
 
       - name: Upload new artifacts
         if: always()
