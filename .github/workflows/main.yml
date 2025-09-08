@@ -22,11 +22,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Download previous artifacts
+      - name: Download previous artifacts (if any)
         uses: actions/download-artifact@v4
         with:
           name: bot-data
           path: .
+        continue-on-error: true   # ✅ يتجاوز إذا ماكو artifact
 
       - name: Install dependencies
         run: |
