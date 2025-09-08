@@ -3,7 +3,7 @@ name: FINAL UserBot (Test)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/11 * * * *"   # تشغيل جديد كل 15 دقيقة (Run جديد كلياً)
+    - cron: "*/11 * * * *"   
 
 concurrency:
   group: final-userbot
@@ -22,22 +22,33 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Download previous artifacts (if any)
+      - name: Download previous artifacts
         uses: actions/download-artifact@v4
         with:
           name: bot-data
-          path: .
-        continue-on-error: true
+          path: .  # النقطة تعني المجلد الحالي (نفس مكان main.py)
+          merge-multiple: true  # دمج múltiples artifacts إذا وجدت
+          overwrite: true  # الكتابة على الملفات الموجودة
+        continue-on-error: true  # لا توقف العملية إذا لم تجد artifacts
+
+      - name: Verify artifact files
+        run: |
+          echo "الملفات الموجودة بعد التنزيل:"
+          ls -la
+          echo "---"
+          echo "التحقق من وجود ملفات الجلسة:"
+          ls -la *.session 2>/dev/null || echo "لا توجد ملفات جلسة حالية"
 
       - name: Install dependencies
         run: |
+          pip install --upgrade pip
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
 
-      - name: Run bot (10 minutes only)
+      - name: Run bot
         run: python main.py
-        timeout-minutes: 10   # يتوقف بعد 10 دقائق
+        timeout-minutes: 10
 
       - name: Upload new artifacts
         if: always()
