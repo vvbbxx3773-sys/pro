@@ -1,9 +1,9 @@
-name: FINAL UserBot
+name: FINAL UserBot (Test)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "*/10 * * * *"   # يشتغل كل 10 دقائق
 
 concurrency:
   group: final-userbot
@@ -22,18 +22,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Restore latest files
-        uses: actions/cache@v3
+      - name: Download previous artifacts
+        uses: actions/download-artifact@v3
         with:
-          path: |
-            *.db
-            *.json
-            *.txt
-            *.png
-            *.jpg
-            *.jpeg
-            *.session
-          key: latest-bot-files
+          name: bot-data
+          path: .
 
       - name: Install dependencies
         run: |
@@ -41,14 +34,18 @@ jobs:
             pip install -r requirements.txt
           fi
 
-      - name: Run bot
-        run: python main.py
-        timeout-minutes: 360
+      - name: Run bot (10 minutes test + 30s delay)
+        run: |
+          echo "⏳ ننتظر 30 ثانية قبل التشغيل..."
+          sleep 30
+          python main.py
+        timeout-minutes: 10   # يتوقف بعد 10 دقائق
 
-      - name: Save latest files
+      - name: Upload new artifacts
         if: always()
-        uses: actions/cache@v3
+        uses: actions/upload-artifact@v3
         with:
+          name: bot-data
           path: |
             *.db
             *.json
@@ -57,4 +54,4 @@ jobs:
             *.jpg
             *.jpeg
             *.session
-          key: latest-bot-files
+          retention-days: 1
