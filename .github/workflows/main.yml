@@ -3,7 +3,7 @@ name: FINAL UserBot (Test)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/15 * * * *"   # تشغيل جديد كل 15 دقيقة (Run جديد كلياً)
+    - cron: "*/11 * * * *"   # تشغيل جديد كل 15 دقيقة (Run جديد كلياً)
 
 concurrency:
   group: final-userbot
