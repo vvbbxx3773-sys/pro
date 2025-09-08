@@ -1,98 +1,0 @@
-name: FINAL UserBot
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "*/11 * * * *"
-
-concurrency:
-  group: final-userbot
-  cancel-in-progress: false
-
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout main code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Configure Git
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-
-      - name: Download bot data from storage branch
-        run: |
-          # إنشاء مجلد مؤقت لبيانات البوت
-          mkdir -p bot-storage
-          
-          # محاولة استنساخ فرع التخزين إذا كان موجوداً
-          if git fetch origin bot-data-storage 2>/dev/null; then
-            echo "تم العثور على فرع التخزين، جاري تحميل البيانات..."
-            git checkout origin/bot-data-storage -- bot-storage/ 2>/dev/null || echo "لا توجد بيانات سابقة"
-            
-            # نسخ جميع الملفات إلى المجلد الرئيسي
-            cp -rf bot-storage/* . 2>/dev/null || true
-            echo "تم تحميل البيانات بنجاح"
-          else
-            echo "لا يوجد فرع تخزين، سيبدأ البوت ببيانات جديدة"
-          fi
-          
-          # عرض الملفات المحملة
-          echo "الملفات بعد التحميل:"
-          ls -la
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          fi
-
-      - name: Run bot
-        run: python main.py
-
-      - name: Save bot data to storage branch
-        if: always()
-        run: |
-          # التأكد من وجود المجلد
-          mkdir -p bot-storage
-          
-          # نسخ جميع الملفات المهمة إلى مجلد التخزين
-          cp -f *.db bot-storage/ 2>/dev/null || true
-          cp -f *.json bot-storage/ 2>/dev/null || true
-          cp -f *.txt bot-storage/ 2>/dev/null || true
-          cp -f *.png bot-storage/ 2>/dev/null || true
-          cp -f *.jpg bot-storage/ 2>/dev/null || true
-          cp -f *.jpeg bot-storage/ 2>/dev/null || true
-          cp -f *.session bot-storage/ 2>/dev/null || true
-          
-          # إنشاء أو التبديل إلى فرع التخزين
-          git checkout --orphan bot-data-storage 2>/dev/null || git checkout bot-data-storage 2>/dev/null || (git checkout main && git checkout -b bot-data-storage)
-          
-          # إضافة جميع الملفات إلى الفرع
-          git add --all
-          
-          # Commit التغييرات
-          git commit -m "🤖 Auto-update bot data - $(date +'%Y-%m-%d %H:%M:%S')" || echo "لا توجد تغييرات للحفظ"
-          
-          # رفع البيانات إلى الفرع
-          git push origin bot-data-storage --force || echo "فشل في رفع البيانات"
-          
-          # العودة إلى الفرع الرئيسي
-          git checkout main
-
-      - name: Final verification
-        run: |
-          echo "✅ تم الانتهاء من العملية بنجاح"
-          echo "البيانات محفوظة في فرع: bot-data-storage"
