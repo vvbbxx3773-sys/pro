@@ -42,8 +42,8 @@ jobs:
           fi
 
       - name: Run bot
-        run: |
-          python main.py
+        run: python main.py
+        timeout-minutes: 360
 
       - name: Save latest files
         if: always()
