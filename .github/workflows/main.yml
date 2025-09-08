@@ -3,7 +3,7 @@ name: FINAL UserBot (Test)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/7 * * * *"   
+    - cron: "*/11 * * * *"   
 
 concurrency:
   group: final-userbot
@@ -12,7 +12,7 @@ concurrency:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -27,28 +27,38 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bot-data
-          path: .
-          overwrite: true
+          path: ./artifacts-temp
         continue-on-error: true
 
-      - name: Verify and fix artifact structure
+      - name: Copy all artifact files to main directory
         run: |
-          echo "هيكل الملفات بعد التحميل:"
-          ls -la
+          echo "نسخ جميع الملفات من المجلد المؤقت إلى المجلد الرئيسي..."
           
-          # إذا كان الـ artifact يحتوي على مجلدات فرنية، ننقل الملفات للمسار الصحيح
-          if [ -d "bot-data" ]; then
-            echo "اكتشاف مجلد bot-data، نقوم بنقل المحتويات..."
-            mv -f bot-data/* . 2>/dev/null || true
-            mv -f bot-data/.* . 2>/dev/null || true
-            rm -rf bot-data
-          fi
+          # إنشاء المجلد المؤقت إذا لم يكن موجوداً
+          mkdir -p ./artifacts-temp
           
-          echo "هيكل الملفات بعد التصحيح:"
-          ls -la
+          # نسخ جميع الملفات من المجلد المؤقت إلى المجلد الرئيسي
+          cp -rf ./artifacts-temp/* . 2>/dev/null || true
+          cp -rf ./artifacts-temp/.* . 2>/dev/null || true
+          
+          # حذف المجلد المؤقت
+          rm -rf ./artifacts-temp
+          
+          echo "تم نسخ جميع الملفات بنجاح"
+
+      - name: Verify all copied files
+        run: |
+          echo "التحقق من وجود جميع الملفات المطلوبة:"
+          echo "ملفات DB: $(ls -la *.db 2>/dev/null | wc -l) ملف"
+          echo "ملفات JSON: $(ls -la *.json 2>/dev/null | wc -l) ملف"
+          echo "ملفات TXT: $(ls -la *.txt 2>/dev/null | wc -l) ملف"
+          echo "ملفات PNG: $(ls -la *.png 2>/dev/null | wc -l) ملف"
+          echo "ملفات JPG: $(ls -la *.jpg 2>/dev/null | wc -l) ملف"
+          echo "ملفات JPEG: $(ls -la *.jpeg 2>/dev/null | wc -l) ملف"
+          echo "ملفات الجلسة: $(ls -la *.session 2>/dev/null | wc -l) ملف"
           echo "---"
-          echo "التحقق من ملفات الجلسة:"
-          ls -la *.session 2>/dev/null || echo "لا توجد ملفات جلسة"
+          echo "جميع الملفات الحالية:"
+          ls -la
 
       - name: Install dependencies
         run: |
