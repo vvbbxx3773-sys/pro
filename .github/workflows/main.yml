@@ -1,0 +1,93 @@
+name: FINAL UserBot
+
+on:
+  workflow_dispatch:   # تشغيل يدوي من GitHub
+  schedule:            # تشغيل تلقائي حسب التوقيت
+    - cron: "*/30 * * * *"   # كل 11 دقيقة
+
+concurrency:
+  group: final-userbot       # يمنع تشغيل اكثر من نسخة بنفس الوقت
+  cancel-in-progress: false  # يخلي القديمة تكمل ومايلغيها
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest   # يشتغل على سيرفر لينوكس
+    timeout-minutes: 30      # يوقف الجوب إذا طول اكثر من 10 دقايق
+
+    steps:
+      - name: Checkout main code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+        # هذي الخطوة تسحب الكود الرئيسي من الفرع main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+        # يجهز بيئة بايثون 3.11
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+        # يضبط اسم وبريد الكوميتات حتى يرفع الملفات
+
+      - name: Download bot data from storage branch
+        run: |
+          echo "جاري تحميل البيانات من فرع التخزين..."
+          
+          if git fetch origin bot-data-storage 2>/dev/null; then
+            echo "تم العثور على فرع التخزين"
+            git checkout origin/bot-data-storage -- . 2>/dev/null || echo "لا توجد بيانات سابقة"
+            echo "تم تحميل بيانات البوت بنجاح"
+          else
+            echo "لا يوجد فرع تخزين، سيبدأ البوت ببيانات جديدة"
+          fi
+          
+          echo "الملفات بعد التحميل:"
+          ls -la *.db *.json *.session *.txt *.png *.jpg *.jpeg 2>/dev/null || echo "لا توجد ملفات بيانات"
+        # هنا يحاول يجيب ملفات التخزين (sessions, db, json...) إذا موجودة
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+        # ينصب المكتبات من ملف requirements.txt إذا موجود
+
+      - name: Run bot
+        run: python main.py
+        # يشغل البوت نفسه
+
+      - name: Save bot data to storage branch
+        if: always()
+        run: |
+          # نبدل على فرع التخزين او ننشئه اذا مو موجود
+          git checkout main
+          git checkout bot-data-storage 2>/dev/null || git checkout -b bot-data-storage
+          
+          # ننظف الملفات القديمة كلها
+          git rm -rf . 2>/dev/null || true
+          
+          # نضيف .gitignore خاص بالتخزين حتى يتجاهل ملفات الكود
+          echo "main.py" >> .gitignore
+          echo "data.py" >> .gitignore
+          echo "FINAL/" >> .gitignore
+          
+          # نضيف كل الملفات الباقية (بيانات فقط)
+          git add --all
+          
+          git commit -m "🤖 Auto-update bot data - $(date +'%Y-%m-%d %H:%M:%S')" || echo "لا توجد تغييرات للحفظ"
+          git push origin bot-data-storage --force || echo "فشل في رفع البيانات"
+          
+          git checkout main
+        # هنا يخزن فقط ملفات البيانات، ويتجاهل main.py و data.py ومجلد FINAL نهائياً
+
+      - name: Clean up and verify
+        run: |
+          echo "✅ تم الانتهاء من العملية بنجاح"
+          echo "البيانات محفوظة في فرع: bot-data-storage"
+        # رسالة نهائية تأكيد انه خلص التخزين
