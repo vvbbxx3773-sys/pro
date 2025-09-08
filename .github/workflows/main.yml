@@ -1,0 +1,78 @@
+name: FINAL UserBot (Test)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/11 * * * *"
+
+concurrency:
+  group: final-userbot
+  cancel-in-progress: false
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout main code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Download bot data from storage branch
+        run: |
+          echo "📥 جاري تحميل البيانات من فرع التخزين..."
+          if git fetch origin bot-data-storage 2>/dev/null; then
+            echo "✅ تم العثور على فرع التخزين"
+            git checkout origin/bot-data-storage -- . 2>/dev/null || echo "⚠️ لا توجد بيانات سابقة"
+            echo "✅ تم استبدال الملفات القديمة بنسخة التخزين"
+          else
+            echo "⚠️ لا يوجد فرع تخزين، سيبدأ البوت ببيانات جديدة"
+          fi
+          echo "📂 التحقق من الملفات بعد التحميل:"
+          ls -la *.db *.json *.session *.txt *.png *.jpg *.jpeg 2>/dev/null || true
+          if ! ls *.session *.db 1> /dev/null 2>&1; then
+            echo "❌ تحذير: ماكو ملفات بيانات (session/db) انوجدت!"
+          else
+            echo "✅ الملفات الأساسية موجودة بعد الاستبدال"
+          fi
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Run bot
+        run: python main.py
+
+      - name: Save bot data to storage branch
+        if: always()
+        run: |
+          git checkout main
+          git checkout bot-data-storage 2>/dev/null || git checkout -b bot-data-storage
+          echo "main.py" >> .gitignore
+          echo "data.py" >> .gitignore
+          echo "FINAL/" >> .gitignore
+          git add --all
+          git commit -m "🤖 Auto-update bot data - $(date +'%Y-%m-%d %H:%M:%S')" || echo "ℹ️ لا توجد تغييرات للحفظ"
+          git push origin bot-data-storage --force || echo "❌ فشل رفع البيانات"
+          git checkout main
+
+      - name: Clean up and verify
+        run: |
+          echo "✅ العملية انتهت بنجاح"
+          echo "📦 البيانات محفوظة في فرع: bot-data-storage"
