@@ -1,0 +1,71 @@
+name: FINAL UserBot (Test)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/11 * * * *"   
+
+concurrency:
+  group: final-userbot
+  cancel-in-progress: false
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download previous artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bot-data
+          path: .  # العودة إلى المسار الرئيسي مباشرة
+        continue-on-error: true
+
+      - name: Verify artifact structure and fix if needed
+        run: |
+          echo "هيكل الملفات بعد التحميل:"
+          ls -la
+          
+          # التحقق إذا تم تحميل الملفات في مجلد فرعي
+          if [ -d "bot-data" ]; then
+            echo "تم تحميل الملفات في مجلد فرعي، جاري نقلها..."
+            cp -rf bot-data/* . 2>/dev/null || true
+            rm -rf bot-data
+          fi
+          
+          echo "التحقق النهائي من الملفات:"
+          ls -la
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Run bot
+        run: python main.py
+
+      - name: Upload new artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-data
+          path: |
+            *.db
+            *.json
+            *.txt
+            *.png
+            *.jpg
+            *.jpeg
+            *.session
+          retention-days: 1
