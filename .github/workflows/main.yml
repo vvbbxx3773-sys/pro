@@ -3,7 +3,7 @@ name: FINAL UserBot (Test)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"   # يشتغل كل 10 دقائق
+    - cron: "*/15 * * * *"   # تشغيل جديد كل 15 دقيقة (Run جديد كلياً)
 
 concurrency:
   group: final-userbot
@@ -27,7 +27,7 @@ jobs:
         with:
           name: bot-data
           path: .
-        continue-on-error: true   # ✅ يتجاوز إذا ماكو artifact
+        continue-on-error: true
 
       - name: Install dependencies
         run: |
@@ -35,11 +35,8 @@ jobs:
             pip install -r requirements.txt
           fi
 
-      - name: Run bot (10 minutes test + 30s delay)
-        run: |
-          echo "⏳ ننتظر 30 ثانية قبل التشغيل..."
-          sleep 30
-          python main.py
+      - name: Run bot (10 minutes only)
+        run: python main.py
         timeout-minutes: 10   # يتوقف بعد 10 دقائق
 
       - name: Upload new artifacts
