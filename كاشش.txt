@@ -1,0 +1,17 @@
+google-generativeai
+mutagen
+git+https://github.com/pytgcalls/pytgcalls
+telethon
+aiocron
+ffmpeg
+emoji
+pytz
+gtts
+qrcode
+Telegram
+aiohttp
+fake_useragent
+user_agent
+hijri_converter
+googletrans
+gpytranslate
